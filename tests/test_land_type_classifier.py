@@ -32,6 +32,17 @@ def test_classify_domain_excludes_renewable_energy_listings():
     assert result.domain_tags == []
 
 
+def test_classify_domain_does_not_false_positive_on_anmoorig_soil_description():
+    result = classify_domain(
+        "Bodenschätze-Ausschreibung",
+        "Ausschreibung Bergwerkseigentum Göhren, Tonrohstoffe",
+        "Die tieferliegenden Bereiche werden von anmoorigen Wiesen und Weiden eingenommen.",
+    )
+
+    assert result.in_scope is False
+    assert "peatland" not in result.domain_tags
+
+
 def test_classify_domain_handles_missing_objektart_label():
     result = classify_domain(None, "Titel ohne Objektart", "Beschreibung ohne Hinweise")
 

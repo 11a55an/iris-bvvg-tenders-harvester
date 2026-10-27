@@ -25,13 +25,20 @@ OBJEKTART_SLUG_TO_DOMAIN_TAG: dict[str, str] = {
 }
 
 PEATLAND_KEYWORDS = (
-    "moor",
-    "torf",
     "niedermoor",
     "hochmoor",
+    "moorfläche",
+    "moorflaeche",
+    "moorboden",
+    "moorschutz",
+    "moorgebiet",
+    "moorrenaturierung",
+    "torfmoor",
     "wiedervernässung",
+    "wiedervernaessung",
     "paludikultur",
     "vernässungsfläche",
+    "vernaessungsflaeche",
 )
 
 
