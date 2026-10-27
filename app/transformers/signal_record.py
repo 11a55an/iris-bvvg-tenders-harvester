@@ -1,5 +1,6 @@
 import hashlib
 import json
+import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -67,17 +68,38 @@ class SignalRecord:
         return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
 
 
+SIZE_UNIT_PATTERN = re.compile(r"(ha|m²|m2)\s*$", re.IGNORECASE)
+SQUARE_METERS_PER_HECTARE = 10_000
+
+
+def _parse_german_decimal(numeric_text: str) -> float:
+    if "," in numeric_text:
+        return float(numeric_text.replace(".", "").replace(",", "."))
+    return float(numeric_text.replace(".", ""))
+
+
 def _parse_size_hectares(raw: str | None, issues: list[str]) -> float | None:
     if not raw:
         issues.append("missing size_hectares")
         return None
 
-    numeric_part = raw.replace("ha", "").strip().replace(".", "").replace(",", ".")
+    unit_match = SIZE_UNIT_PATTERN.search(raw)
+    if not unit_match:
+        issues.append(f"unrecognized size unit in value: {raw!r}")
+        return None
+
+    unit = unit_match.group(1).lower()
+    numeric_text = raw[: unit_match.start()].strip()
+
     try:
-        return float(numeric_part)
+        value = _parse_german_decimal(numeric_text)
     except ValueError:
         issues.append(f"unparsable size_hectares value: {raw!r}")
         return None
+
+    if unit in ("m²", "m2"):
+        return value / SQUARE_METERS_PER_HECTARE
+    return value
 
 
 def _parse_tender_end_at(detail: DetailRecord, issues: list[str]) -> datetime | None:
