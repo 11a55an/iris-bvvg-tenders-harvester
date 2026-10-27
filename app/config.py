@@ -13,7 +13,6 @@ class DatabaseSettings:
     name: str
     user: str
     password: str
-    schema: str
 
     @property
     def sqlalchemy_url(self) -> str:
@@ -41,7 +40,6 @@ def load_database_settings() -> DatabaseSettings:
         name=os.environ.get("BVVG_DB_NAME", "iris"),
         user=os.environ.get("BVVG_DB_USER", "iris"),
         password=os.environ.get("BVVG_DB_PASSWORD", ""),
-        schema=os.environ.get("BVVG_DB_SCHEMA", "iris_staging"),
     )
 
 
