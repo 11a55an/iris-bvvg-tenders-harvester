@@ -1,4 +1,5 @@
 import logging
+import time
 
 import requests
 from tenacity import (
@@ -41,6 +42,7 @@ class BvvgHttpClient:
             wait=wait_exponential(multiplier=1, min=1, max=10),
             reraise=True,
         )
+        self._last_request_at: float | None = None
 
     def fetch_html(self, url: str) -> str:
         try:
@@ -48,10 +50,22 @@ class BvvgHttpClient:
         except (requests.RequestException, EmptyResponseError) as exc:
             raise PageFetchError(url, str(exc)) from exc
 
+    def _throttle(self) -> None:
+        if self._last_request_at is None:
+            return
+        elapsed = time.monotonic() - self._last_request_at
+        remaining = self._settings.request_delay_seconds - elapsed
+        if remaining > 0:
+            time.sleep(remaining)
+
     def _get(self, url: str) -> str:
-        response = self._session.get(
-            url, timeout=self._settings.request_timeout_seconds
-        )
+        self._throttle()
+        try:
+            response = self._session.get(
+                url, timeout=self._settings.request_timeout_seconds
+            )
+        finally:
+            self._last_request_at = time.monotonic()
         response.raise_for_status()
         if not response.text or not response.text.strip():
             raise EmptyResponseError(f"empty response body for {url}")

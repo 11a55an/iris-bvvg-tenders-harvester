@@ -28,6 +28,7 @@ def iter_listing_stubs(
             break
 
         url = build_listing_page_url(settings, page_number)
+        logger.info("Fetching listing page %s of %s: %s", page_number, total_pages, url)
         try:
             html = client.fetch_html(url)
         except PageFetchError:
@@ -37,6 +38,9 @@ def iter_listing_stubs(
         pagination = parse_pagination(html, page_number)
         total_pages = pagination.total_pages
 
-        yield from parse_listing_stubs(html)
+        stubs = parse_listing_stubs(html)
+        logger.info("Found %s listings on page %s", len(stubs), page_number)
+
+        yield from stubs
 
         page_number += 1

@@ -14,6 +14,8 @@ from app.transformers.land_type_classifier import classify_domain
 
 SOURCE_SYSTEM = "bvvg"
 SOURCE_TIMEZONE = ZoneInfo("Europe/Berlin")
+SIZE_VALUE_WITH_UNIT_PATTERN = re.compile(r"([\d.,]+)\s*(ha|m²|m2)", re.IGNORECASE)
+SQUARE_METERS_PER_HECTARE = 10_000
 
 
 class TransformationError(Exception):
@@ -68,14 +70,16 @@ class SignalRecord:
         return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
 
 
-SIZE_UNIT_PATTERN = re.compile(r"(ha|m²|m2)\s*$", re.IGNORECASE)
-SQUARE_METERS_PER_HECTARE = 10_000
-
-
 def _parse_german_decimal(numeric_text: str) -> float:
     if "," in numeric_text:
         return float(numeric_text.replace(".", "").replace(",", "."))
     return float(numeric_text.replace(".", ""))
+
+
+def _hectares_from_value_and_unit(value: float, unit: str) -> float:
+    if unit.lower() in ("m²", "m2"):
+        return value / SQUARE_METERS_PER_HECTARE
+    return value
 
 
 def _parse_size_hectares(raw: str | None, issues: list[str]) -> float | None:
@@ -83,23 +87,22 @@ def _parse_size_hectares(raw: str | None, issues: list[str]) -> float | None:
         issues.append("missing size_hectares")
         return None
 
-    unit_match = SIZE_UNIT_PATTERN.search(raw)
-    if not unit_match:
+    value_and_unit_matches = SIZE_VALUE_WITH_UNIT_PATTERN.findall(raw)
+    if not value_and_unit_matches:
         issues.append(f"unrecognized size unit in value: {raw!r}")
         return None
 
-    unit = unit_match.group(1).lower()
-    numeric_text = raw[: unit_match.start()].strip()
+    sub_parcel_hectares = []
+    for numeric_text, unit in value_and_unit_matches:
+        try:
+            sub_parcel_hectares.append(
+                _hectares_from_value_and_unit(_parse_german_decimal(numeric_text), unit)
+            )
+        except ValueError:
+            issues.append(f"unparsable size_hectares value: {raw!r}")
+            return None
 
-    try:
-        value = _parse_german_decimal(numeric_text)
-    except ValueError:
-        issues.append(f"unparsable size_hectares value: {raw!r}")
-        return None
-
-    if unit in ("m²", "m2"):
-        return value / SQUARE_METERS_PER_HECTARE
-    return value
+    return sum(sub_parcel_hectares)
 
 
 def _parse_tender_end_at(detail: DetailRecord, issues: list[str]) -> datetime | None:

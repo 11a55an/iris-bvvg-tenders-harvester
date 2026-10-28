@@ -203,10 +203,12 @@ Useful environment variables (see `.env.example` for the full list):
 
 - `BVVG_MAX_PAGES` — cap the number of listing pages fetched, useful for a
   quick smoke run.
-- `BVVG_REQUEST_DELAY` — seconds to wait between requests (politeness delay;
-  the http client itself does not currently sleep between calls — set this
-  if you add a delay in your own scheduling, e.g. a cron wrapper).
-- `BVVG_USER_AGENT` — see "a note on User-Agent" below before changing this.
+- `BVVG_REQUEST_DELAY` — minimum seconds between consecutive requests
+  (politeness delay). The http client tracks the time of its last request
+  and sleeps as needed before firing the next one, so this applies across
+  both listing and detail page fetches. Defaults to 1.0.
+- `BVVG_USER_AGENT` — see "a note on the site's bot filtering" below before
+  changing this.
 
 ### A note on the site's bot filtering
 

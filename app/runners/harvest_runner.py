@@ -39,6 +39,7 @@ def harvest_signal_records(
             skips.duplicates_in_batch += 1
             continue
 
+        logger.info("Fetching detail page for %s: %s", stub.source_id, stub.detail_url)
         try:
             detail = fetch_detail_record(client, stub.detail_url)
         except PageFetchError as exc:
@@ -65,11 +66,15 @@ def run() -> QualityReport:
     scraper_settings = load_scraper_settings()
     database_settings = load_database_settings()
 
+    logger.info("Starting harvest run against %s", scraper_settings.base_url)
+
     client = BvvgHttpClient(scraper_settings)
     try:
         records, skips = harvest_signal_records(client, scraper_settings)
     finally:
         client.close()
+
+    logger.info("Scraping done, built %s records, loading into database", len(records))
 
     session_factory = create_session_factory(database_settings)
     with session_scope(session_factory) as session:

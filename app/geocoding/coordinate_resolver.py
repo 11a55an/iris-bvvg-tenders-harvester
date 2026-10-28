@@ -12,8 +12,8 @@ TARGET_CRS = "EPSG:25832"
 
 GERMANY_LATITUDE_RANGE = (47.0, 55.5)
 GERMANY_LONGITUDE_RANGE = (5.5, 15.5)
-GERMANY_EASTING_RANGE = (100_000.0, 900_000.0)
-GERMANY_NORTHING_RANGE = (5_200_000.0, 6_100_000.0)
+GERMANY_EASTING_RANGE_WITH_BORDER_MARGIN = (250_000.0, 930_000.0)
+GERMANY_NORTHING_RANGE_WITH_BORDER_MARGIN = (5_220_000.0, 6_110_000.0)
 
 _transformer = Transformer.from_crs(SOURCE_CRS, TARGET_CRS, always_xy=True)
 
@@ -50,10 +50,12 @@ def resolve_location(detail: DetailRecord) -> GeocodingResult:
     if not (math.isfinite(easting) and math.isfinite(northing)):
         return _unresolved("coordinate transform produced non finite result")
 
-    if not (GERMANY_EASTING_RANGE[0] <= easting <= GERMANY_EASTING_RANGE[1]):
+    easting_lower, easting_upper = GERMANY_EASTING_RANGE_WITH_BORDER_MARGIN
+    if not (easting_lower <= easting <= easting_upper):
         return _unresolved(f"transformed easting {easting} outside plausible Germany range")
 
-    if not (GERMANY_NORTHING_RANGE[0] <= northing <= GERMANY_NORTHING_RANGE[1]):
+    northing_lower, northing_upper = GERMANY_NORTHING_RANGE_WITH_BORDER_MARGIN
+    if not (northing_lower <= northing <= northing_upper):
         return _unresolved(f"transformed northing {northing} outside plausible Germany range")
 
     return GeocodingResult(

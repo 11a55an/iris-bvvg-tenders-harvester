@@ -1,3 +1,5 @@
+import time
+
 import responses
 
 from app.config import ScraperSettings
@@ -63,6 +65,24 @@ def test_fetch_html_raises_after_exhausting_retries():
         assert exc.url == "https://www.bvvg.de/objekte/"
 
     assert len(responses.calls) == 3
+
+
+@responses.activate
+def test_fetch_html_waits_at_least_request_delay_between_requests():
+    responses.add(
+        responses.GET, "https://www.bvvg.de/objekte/", body="<html>a</html>", status=200
+    )
+    responses.add(
+        responses.GET, "https://www.bvvg.de/objekte/page/2/", body="<html>b</html>", status=200
+    )
+    client = BvvgHttpClient(_settings(request_delay_seconds=0.3))
+
+    client.fetch_html("https://www.bvvg.de/objekte/")
+    started_second_wait_at = time.monotonic()
+    client.fetch_html("https://www.bvvg.de/objekte/page/2/")
+    elapsed = time.monotonic() - started_second_wait_at
+
+    assert elapsed >= 0.25
 
 
 @responses.activate
